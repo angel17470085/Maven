@@ -1,15 +1,25 @@
 package deafult;
 import io.restassured.RestAssured;
+import io.restassured.parsing.Parser;
 import io.restassured.path.json.JsonPath;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.edge.EdgeDriver;
 import org.openqa.selenium.Keys;
+
+import org.testng.Assert;
+import pojo.*;
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import static io.restassured.RestAssured.given;
 
 public class oAuthTest {
 
-    public static void main(String[] args) throws InterruptedException {
+    public static void main(String[] args) throws InterruptedException
+    {
 
         //the commented out code for selenium it is not used, due to googles new update..
         // they detect this as a threat...
@@ -28,13 +38,14 @@ public class oAuthTest {
         //        //        driver.findElement(By.cssSelector("input[type='password']")).sendKeys(Keys.ENTER);
         //        //        Thread.sleep(4000);ntUrl();
 
-        String url = "https://rahulshettyacademy.com/getCourse.php?code=4%2F0AbUR2VN_hxQAXjb6xwGDZfg3JY3vlZ3OYD8ja3jpOWtCZV46irYYeMVr7fplnUZJ8v62UQ&scope=email+openid+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email&authuser=0&prompt=none";
-       String partialCode = url.split("code=")[1];
+        String[] courseTitles = {"Selenium Webdriver Java","Cypress","Protractor","feter"};
+        String url = "https://rahulshettyacademy.com/getCourse.php?code=4%2F0AbUR2VOpAVGKDj_eKIuDAHP1exzYMc1-VL-0TPeE9HhmTFfjUD6elZ5w8iS6WiMqw-tRmQ&scope=email+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email+openid&authuser=0&prompt=none";
+        String partialCode = url.split("code=")[1];
        String code = partialCode.split("&scope")[0];
         System.out.println(code);
 
         System.out.println("------------------ POST REQUEST: ACCESS TOKEN----------------------");
-       String accessTokenResponse =  given().urlEncodingEnabled(false)
+         String accessTokenResponse =  given().urlEncodingEnabled(false)
                 .queryParams("code",code)
                 .queryParams("client_id","692183103107-p0m7ent2hk7suguv4vq22hjcfhcr43pj.apps.googleusercontent.com")
                 .queryParams("client_secret","erZOWM9g3UtwNRj340YYaK_W")
@@ -47,10 +58,42 @@ public class oAuthTest {
         String accessToken = js.getString("access_token");
 
 
-        System.out.println("-------------- GET REQUEST - get courses--------------------");
-       String response = given().queryParam("access_token",accessToken)
-                .when().log().all()
-               .get("https://rahulshettyacademy.com/getCourse.php").asString();
-        System.out.println(response);
+       System.out.println("-------------- GET REQUEST - get courses--------------------");
+       GetCourse gc = given().queryParam("access_token",accessToken).expect().defaultParser(Parser.JSON)
+                .when()
+               .get("https://rahulshettyacademy.com/getCourse.php").as(GetCourse.class);
+
+        System.out.println("linkedin url :"+gc.getLinkedIn());
+        System.out.println("Instructor :"+gc.getInstructor());
+
+       List<Api> apiCourses = gc.getCourses().getApi();
+
+        for (int i = 0; i < apiCourses.size(); i++)
+        {
+
+            if (apiCourses.get(i).getCourseTitle().equalsIgnoreCase("SoapUI Webservices testing"))
+            {
+
+                System.out.println("The price is: " +apiCourses.get(i).getPrice());
+            }
+        }
+
+        //GET COURSES OF WEB AUTOMATION
+
+        ArrayList<String> a = new ArrayList<String>();
+
+        List<WebAutomation>  w = gc.getCourses().getWebAutomation();
+        for (int i = 0; i < w.size(); i++)
+        {
+            a.add(w.get(i).getCourseTitle());
+        }
+
+        List<String> expectedList = Arrays.asList(courseTitles);
+
+        Assert.assertTrue(a.equals(expectedList));
+            //System.out.println(response);
     }
+
+
+
 }
